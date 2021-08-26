@@ -1,18 +1,25 @@
 package main
 
 import (
-	"bytes"
-	"fmt"
+	_ "github.com/PogpogPapaya/backend-api.git/docs"
+	"github.com/PogpogPapaya/backend-api.git/handler"
+	swagger "github.com/arsmn/fiber-swagger/v2"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/limiter"
 	"github.com/hashicorp/go-hclog"
-	"io"
-	"mime/multipart"
-	"net/http"
 	"os"
 	"time"
 )
+
+// @title Papaya Ripeness Prediction API
+// @version 1.0
+// @description This is a sample of papaya ripeness prediction api for CSC340
+//
+// @license.name MIT
+//
+// @host https://papaya.cscms.me
+// @BasePath /
 
 func main() {
 	logger := hclog.Default()
@@ -38,11 +45,15 @@ func main() {
 		},
 	})
 
+	handlers := handler.NewHandler(predictionApiHost)
+
 	app.Use(limiter.New(limiter.Config{
 		Expiration: time.Second * 5,
 		Max:        20,
 	}))
 	app.Use(cors.New(cors.Config{AllowMethods: "GET POST", AllowOrigins: "*"}))
+
+	app.Get("/swagger/*", swagger.Handler) // default
 
 	app.Get("/api/ping", func(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{
@@ -51,52 +62,14 @@ func main() {
 		})
 	})
 
-	app.Post("/api/papaya/predict", func(c *fiber.Ctx) error {
-
-		fileHeader, err := c.FormFile("image")
-		if err != nil {
-			return fiber.NewError(fiber.StatusBadRequest, fmt.Sprint("cannot get file header from form-data", err.Error()))
-		}
-
-		imgFile, err := fileHeader.Open()
-		if err != nil {
-			return fiber.NewError(fiber.StatusInternalServerError, fmt.Sprint("cannot open file header", err.Error()))
-		}
-
-		client := &http.Client{
-			Timeout: time.Second * 10,
-		}
-		body := &bytes.Buffer{}
-		bodyWriter := multipart.NewWriter(body)
-		fw, _ := bodyWriter.CreateFormFile("file", "papaya")
-
-		if _, err := io.Copy(fw, imgFile); err != nil {
-			return fiber.NewError(fiber.StatusInternalServerError, fmt.Sprint("cannot write to file form", err.Error()))
-		}
-		if err := bodyWriter.Close(); err != nil {
-			return fiber.NewError(fiber.StatusInternalServerError, fmt.Sprint("cannot close bodyWriter", err.Error()))
-		}
-
-		req, err := http.NewRequest("POST", fmt.Sprintf("%s/api/predict", predictionApiHost), bytes.NewReader(body.Bytes()))
-		if err != nil {
-			return fiber.NewError(fiber.StatusInternalServerError, fmt.Sprint("cannot create new request", err.Error()))
-		}
-		req.Header.Set("Content-Type", bodyWriter.FormDataContentType())
-		res, err := client.Do(req)
-		if err != nil {
-			return fiber.NewError(fiber.StatusInternalServerError, fmt.Sprint("cannot get prediction", err.Error()))
-		}
-
-		if _, err := io.Copy(c, res.Body); err != nil {
-			return fiber.NewError(fiber.StatusInternalServerError, fmt.Sprint("cannot copy prediction result to response", err.Error()))
-		}
-		c.Set("Content-Type", "application/json")
-		return nil
-
-	})
+	app.Post("/api/papaya/predict", handlers.RipenessPredictHandler)
 
 	if err := app.Listen(":5000"); err != nil {
 		logger.Error("Unable to start server on port 5000")
 		os.Exit(1)
 	}
+}
+
+type ErrorMessage struct {
+	Message string `json:"message"`
 }

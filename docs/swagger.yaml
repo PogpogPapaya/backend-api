@@ -1,0 +1,55 @@
+basePath: /
+definitions:
+  handler.PredictionResponseDto:
+    properties:
+      classification:
+        type: string
+      confidence:
+        type: string
+    type: object
+  main.ErrorMessage:
+    properties:
+      message:
+        type: string
+    type: object
+host: https://papaya.cscms.me
+info:
+  contact: {}
+  description: This is a sample of papaya ripeness prediction api for CSC340
+  license:
+    name: MIT
+  title: Papaya Ripeness Prediction API
+  version: "1.0"
+paths:
+  /api/papaya/predict:
+    post:
+      consumes:
+      - multipart/form-data
+      produces:
+      - application/json
+      parameters:
+        - in: formData
+          name: image
+          type: file
+          description: Image file of papaya to predict ripeness
+      responses:
+        "200":
+          description: the prediction confidence and classification
+          schema:
+            $ref: '#/definitions/handler.PredictionResponseDto'
+        "404":
+          description: Multipart-form data error
+          schema:
+            $ref: '#/definitions/main.ErrorMessage'
+        "413":
+          description: Payload too large (10MB limit)
+          schema:
+            $ref: '#/definitions/main.ErrorMessage'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/main.ErrorMessage'
+      summary: get papaya ripeness prediction
+      tags:
+      - papaya
+swagger: "2.0"

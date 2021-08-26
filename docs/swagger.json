@@ -1,0 +1,85 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "This is a sample of papaya ripeness prediction api for CSC340",
+        "title": "Papaya Ripeness Prediction API",
+        "contact": {},
+        "license": {
+            "name": "MIT"
+        },
+        "version": "1.0"
+    },
+    "host": "https://papaya.cscms.me",
+    "basePath": "/",
+    "paths": {
+        "/api/papaya/predict": {
+            "post": {
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "papaya"
+                ],
+                "parameters": [
+                    {
+                        "in": "formData",
+                        "name": "image",
+                        "type": "file",
+                        "description": "Image file of papaya to predict ripeness"
+                    }
+                ],
+                "summary": "get papaya ripeness prediction",
+                "responses": {
+                    "200": {
+                        "description": "the prediction confidence and classification",
+                        "schema": {
+                            "$ref": "#/definitions/handler.PredictionResponseDto"
+                        }
+                    },
+                    "404": {
+                        "description": "Multipart-form data error",
+                        "schema": {
+                            "$ref": "#/definitions/main.ErrorMessage"
+                        }
+                    },
+                    "413": {
+                        "description": "Payload too large (10MB limit)",
+                        "schema": {
+                            "$ref": "#/definitions/main.ErrorMessage"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/main.ErrorMessage"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "handler.PredictionResponseDto": {
+            "type": "object",
+            "properties": {
+                "classification": {
+                    "type": "string"
+                },
+                "confidence": {
+                    "type": "string"
+                }
+            }
+        },
+        "main.ErrorMessage": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                }
+            }
+        }
+    }
+}
