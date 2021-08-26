@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gofiber/fiber/v2/middleware/limiter"
 	"github.com/hashicorp/go-hclog"
 	"io"
 	"mime/multipart"
@@ -35,6 +37,12 @@ func main() {
 			return c.Status(code).JSON(fiber.Map{"message": msg})
 		},
 	})
+
+	app.Use(limiter.New(limiter.Config{
+		Expiration: time.Second * 5,
+		Max:        20,
+	}))
+	app.Use(cors.New(cors.Config{AllowMethods: "GET POST", AllowOrigins: "*", AllowHeaders: "Origin, Content-Type, Accept"}))
 
 	app.Get("/api/ping", func(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{
