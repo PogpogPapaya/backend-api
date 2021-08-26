@@ -42,7 +42,7 @@ func main() {
 		Expiration: time.Second * 5,
 		Max:        20,
 	}))
-	app.Use(cors.New(cors.Config{AllowMethods: "GET POST", AllowOrigins: "*", AllowHeaders: "Origin, Content-Type, Accept"}))
+	app.Use(cors.New(cors.Config{AllowMethods: "GET POST", AllowOrigins: "*"}))
 
 	app.Get("/api/ping", func(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{
