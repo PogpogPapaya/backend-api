@@ -3,11 +3,13 @@ package main
 import (
 	_ "github.com/PogpogPapaya/backend-api.git/docs"
 	"github.com/PogpogPapaya/backend-api.git/handler"
+	"github.com/PogpogPapaya/backend-api.git/pb"
 	swagger "github.com/arsmn/fiber-swagger/v2"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/limiter"
 	"github.com/hashicorp/go-hclog"
+	"google.golang.org/grpc"
 	"os"
 	"time"
 )
@@ -45,7 +47,16 @@ func main() {
 		},
 	})
 
-	handlers := handler.NewHandler(predictionApiHost)
+	// Create gRPC client
+	conn, err := grpc.Dial(predictionApiHost, grpc.WithInsecure())
+	if err != nil {
+		logger.Error("unable to dia localhost:8000 for gRPC", err)
+		os.Exit(1)
+	}
+	papayaServiceClient := pb.NewPapayaServiceClient(conn)
+
+	// Create handler
+	handlers := handler.NewHandler(papayaServiceClient)
 
 	app.Use(limiter.New(limiter.Config{
 		Expiration: time.Second * 5,
