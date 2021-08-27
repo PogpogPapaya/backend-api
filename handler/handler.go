@@ -1,9 +1,13 @@
 package handler
 
+import "github.com/PogpogPapaya/backend-api.git/pb"
+
 type Handler struct {
-	predictionApiHost string
+	papayaServiceClient pb.PapayaServiceClient
 }
 
-func NewHandler(predictionApiHost string) *Handler {
-	return &Handler{predictionApiHost: predictionApiHost}
+func NewHandler(papayaServiceClient pb.PapayaServiceClient) *Handler {
+	return &Handler{
+		papayaServiceClient: papayaServiceClient,
+	}
 }

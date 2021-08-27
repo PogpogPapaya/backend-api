@@ -1,0 +1,15 @@
+syntax = "proto3";
+option go_package = ".;pb";
+
+service PapayaService {
+    rpc Predict(PredictionRequest) returns(PredictionResponse);
+}
+
+message PredictionRequest {
+    bytes image = 1;
+}
+
+message PredictionResponse {
+    string label = 1;
+    double confidence = 2;
+}

@@ -2,12 +2,10 @@ package handler
 
 import (
 	"bytes"
-	"encoding/json"
+	"context"
 	"fmt"
+	"github.com/PogpogPapaya/backend-api.git/pb"
 	"github.com/gofiber/fiber/v2"
-	"io"
-	"mime/multipart"
-	"net/http"
 	"time"
 )
 
@@ -34,40 +32,23 @@ func (h *Handler) RipenessPredictHandler(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusInternalServerError, fmt.Sprint("cannot open file header", err.Error()))
 	}
 
-	// Create client and create form-data
-	client := &http.Client{
-		Timeout: time.Second * 10,
-	}
-	body := &bytes.Buffer{}
-	bodyWriter := multipart.NewWriter(body)
-	fw, _ := bodyWriter.CreateFormFile("file", "papaya")
-
-	if _, err := io.Copy(fw, imgFile); err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, fmt.Sprint("cannot write to file form", err.Error()))
-	}
-	if err := bodyWriter.Close(); err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, fmt.Sprint("cannot close bodyWriter", err.Error()))
+	buf := new(bytes.Buffer)
+	if _, err := buf.ReadFrom(imgFile); err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, fmt.Sprint("cannot get bytes data from imgFile", err.Error()))
 	}
 
-	// Create request and send the request
-	req, err := http.NewRequest("POST", fmt.Sprintf("%s/api/predict", h.predictionApiHost), bytes.NewReader(body.Bytes()))
-	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, fmt.Sprint("cannot create new request", err.Error()))
-	}
-	req.Header.Set("Content-Type", bodyWriter.FormDataContentType())
-	res, err := client.Do(req)
+	req := &pb.PredictionRequest{Image: buf.Bytes()}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+
+	res, err := h.papayaServiceClient.Predict(ctx, req)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, fmt.Sprint("cannot get prediction", err.Error()))
 	}
 
-	// Convert prediction res body to PredictionResponseDto
-	var predictionRes PredictionResponseDto
-	decoder := json.NewDecoder(res.Body)
-	if err := decoder.Decode(&predictionRes); err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, fmt.Sprint("cannot parse prediction response to struct", err.Error()))
-	}
-	if err := res.Body.Close(); err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, fmt.Sprint("cannot close response body", err.Error()))
+	predictionRes := PredictionResponseDto{
+		Classification: res.GetLabel(),
+		Confidence:     fmt.Sprintf("%v", res.GetConfidence()),
 	}
 
 	return c.Status(fiber.StatusOK).JSON(predictionRes)
