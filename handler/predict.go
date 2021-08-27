@@ -1,10 +1,10 @@
 package handler
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"github.com/PogpogPapaya/backend-api.git/pb"
+	"github.com/PogpogPapaya/backend-api.git/utils"
 	"github.com/gofiber/fiber/v2"
 	"time"
 )
@@ -32,12 +32,12 @@ func (h *Handler) RipenessPredictHandler(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusInternalServerError, fmt.Sprint("cannot open file header", err.Error()))
 	}
 
-	buf := new(bytes.Buffer)
-	if _, err := buf.ReadFrom(imgFile); err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, fmt.Sprint("cannot get bytes data from imgFile", err.Error()))
+	buf, err := utils.ResizeImage(imgFile, 150, 150)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, fmt.Sprint("cannot resize image", err.Error()))
 	}
 
-	req := &pb.PredictionRequest{Image: buf.Bytes()}
+	req := &pb.PredictionRequest{Image: *buf}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
